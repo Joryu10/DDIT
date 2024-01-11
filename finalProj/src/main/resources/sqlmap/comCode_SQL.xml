@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.ComCodeMapper">
+
+	<select id="list" resultType="comCodeInfoVO">
+		SELECT COM_CODE, COM_CODE_NM, DESCRIPTIONS
+		FROM  COM_CODE_INFO
+		ORDER BY COM_CODE	
+	</select>
+	
+	<!-- 공통상세 코드 목록 
+	public List<ComDetCodeInfoVO> detList(String comCode)
+	-->
+	<select id="detList" parameterType="String" resultType="comDetCodeInfoVO">
+		SELECT  COM_DET_CODE, COM_CODE, COM_DET_CODE_NM, DESCRIPTIONS
+		FROM   COM_DET_CODE_INFO
+		WHERE COM_CODE = #{comCode}
+	</select>
+	
+	<!-- 공통코드 등록 -->
+	<insert id="comCodeCreatePost" parameterType="comCodeInfoVO">
+		INSERT INTO COM_CODE_INFO(COM_CODE, COM_CODE_NM, DESCRIPTIONS)
+		VALUES(#{comCode},#{comCodeNm},#{descriptions})
+	</insert>
+	
+	<!-- 공통상세코드 등록 
+	{"comDetCode":"PRO01001","comCode":"PRO01","comDetCodeNm":"수강신청"
+				,"descriptions":"수강신청"}
+	-->
+	<insert id="comDetCodeCreatePost" parameterType="comDetCodeInfoVO">
+		INSERT INTO COM_Det_CODE_INFO(COM_DET_CODE, COM_CODE, COM_DET_CODE_NM, DESCRIPTIONS)
+		VALUES(#{comDetCode},#{comCode},#{comDetCodeNm},#{descriptions})
+	</insert>
+	
+	<!-- 
+	공통상세코드 상세
+	public ComDetCodeInfoVO comDetCodeDetail(ComDetCodeInfoVO comDetCodeInfoVO)
+	{"comDetCode":"PRO01001","comCode":"","comDetCodeNm":""
+				,"descriptions":""}
+	 -->
+	<select id="comDetCodeDetail" parameterType="comDetCodeInfoVO" resultType="comDetCodeInfoVO">
+		SELECT COM_DET_CODE, COM_CODE, COM_DET_CODE_NM, DESCRIPTIONS
+		FROM  COM_DET_CODE_INFO
+		WHERE COM_DET_CODE = #{comDetCode}
+	</select>
+	
+	<!-- 
+	공통상세코드 삭제
+	public int comDetCodeDeletePost(Map<String, String> map)
+	{"comDetCode":"PFL01001"}
+	-->
+	<delete id="comDetCodeDeletePost" parameterType="hashMap">
+		DELETE FROM COM_DET_CODE_INFO
+		WHERE   COM_DET_CODE = #{comDetCode}
+	</delete>
+</mapper>
+
+
+
+
+
+
+
+

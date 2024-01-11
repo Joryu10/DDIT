@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.InstrsMapper">
+	
+	<!-- entRelorStandVO -->
+	<resultMap type="entRelorStandVO" id="entRelorStandMap">
+		<result property="entRelorNo" column="ENT_RELOR_NO"/>
+		<result property="kornFlnm" column="KORN_FLNM"/>
+		<result property="entRelorDiv" column="ENT_RELOR_DIV"/>
+		<result property="mbrNo" column="MBR_NO"/>
+		<association property="empVO" resultMap="empMap"></association>
+		<collection property="atchFileDetailVOList" resultMap="atchFileDetailMap"></collection>
+	</resultMap>
+	
+	<!-- atchFileDetailVO -->
+	<resultMap type="atchFileDetailVO" id="atchFileDetailMap">
+		<result property="atchFileId" column="ATCH_FILE_ID"/>
+		<result property="fileSn" column="FILE_SN"/>
+		<result property="fileStreCours" column="FILE_STRE_COURS"/>
+		<result property="streFileNm" column="STRE_FILE_NM"/>
+		<result property="orignlFileNm" column="ORIGNL_FILE_NM"/>
+		<result property="fileExtsn" column="FILE_EXTSN"/>
+		<result property="fileCn" column="FILE_CN"/>
+		<result property="fileSize" column="FILE_SIZE"/>
+	</resultMap>
+	
+	<!-- empVO -->
+	<resultMap type="empVO" id="empMap">
+		<result property="entRelorNo" column="ENT_RELOR_NO"/>
+		<result property="empNo" column="EMP_NO"/>
+		<result property="curJobDiv" column="CUR_JOB_DIV"/>
+		<result property="curWorkCtrNo" column="CUR_WORK_CTR_NO"/>
+		<association property="instrsVO" resultMap="instrsMap"></association>
+	</resultMap>
+	
+	<!-- instrsVO -->
+	<resultMap type="instrsVO" id="instrsMap">
+		<result property="entRelorNo" column="ENT_RELOR_NO"/>
+		<result property="memsDiv" column="MEMS_DIV"/>
+	</resultMap>
+	
+	<!-- public List<EntRelorStandVO> list() -->
+	<select id="list" resultMap="entRelorStandMap">
+		SELECT A.ENT_RELOR_NO, A.KORN_FLNM
+		         , A.ENT_RELOR_DIV
+		         , (SELECT COM_DET_CODE_NM FROM COM_DET_CODE_INFO
+		                WHERE  COM_DET_CODE = A.ENT_RELOR_DIV) COM_DET_CODE_NM
+		         , A.MBR_NO
+		         , B.EMP_NO
+		         , B.CUR_JOB_DIV
+		         , FN_GET_COM_NM(B.CUR_JOB_DIV) CUR_JOB_DIV_NM
+		         , B.CUR_WORK_CTR_NO
+		         , C.MEMS_DIV
+		FROM  ENT_RELOR_STAND A, EMP B, INSTRS C
+		WHERE  A.ENT_RELOR_NO = B.ENT_RELOR_NO(+)
+		AND    B.ENT_RELOR_NO = C.ENT_RELOR_NO(+)
+		AND    B.CUR_JOB_DIV = 'CUR01001'
+	</select>
+	
+	<!-- 전사관계자기본 등록 
+	public int createPost(EntRelorStandVO entRelorStandVO)
+	
+	before : entRelorNo=null, kornFlnm=개똥이, entRelorDiv=ENT01002, mbrNo=12345
+	before : entRelorNo=202311011, kornFlnm=개똥이, entRelorDiv=ENT01002, mbrNo=12345
+	-->
+	<insert id="createPost" parameterType="entRelorStandVO">
+		<selectKey resultType="String" order="BEFORE" keyProperty="entRelorNo">
+			SELECT MAX(ENT_RELOR_NO) + 1
+			FROM  ENT_RELOR_STAND
+			WHERE ENT_RELOR_NO LIKE TO_CHAR(SYSDATE,'YYYYMM') || '%'
+		</selectKey>
+		
+		INSERT INTO ENT_RELOR_STAND(ENT_RELOR_NO, KORN_FLNM, ENT_RELOR_DIV, MBR_NO)
+		VALUES(#{entRelorNo},#{kornFlnm}
+			  ,#{entRelorDiv},#{mbrNo})
+	</insert>
+	
+	<!-- 직원 등록
+	public int insertEmp(EmpVO empVO)
+	//EmpVO(entRelorNo=202311011, empNo=202311011, curJobDiv=CUR01001, curWorkCtrNo=12,...
+	-->
+	<insert id="insertEmp" parameterType="empVO">
+		INSERT INTO EMP(ENT_RELOR_NO, EMP_NO, CUR_JOB_DIV, CUR_WORK_CTR_NO)
+		VALUES(#{entRelorNo},#{empNo},#{curJobDiv},#{curWorkCtrNo})
+	</insert>
+	
+	<!-- 강사 등록
+	public int insertInstrs(InstrsVO instrsVO)
+	InstrsVO(entRelorNo=202311011, memsDiv=사원)
+	-->
+	<insert id="insertInstrs" parameterType="instrsVO">
+		INSERT INTO INSTRS(ENT_RELOR_NO, MEMS_DIV)
+		VALUES(#{entRelorNo},#{memsDiv})
+	</insert>
+	
+	<!-- 강사프로필 등록
+	public void insertInstrsWorkPfl(InstrsWorkPflVO instrsWorkPflVO)
+	-->
+	<insert id="insertInstrsWorkPfl" parameterType="instrsWorkPflVO">
+		INSERT INTO INSTRS_WORK_PFL(ENT_RELOR_NO, SEQ, PFL)
+		VALUES(#{entRelorNo},#{seq},#{pfl})
+	</insert>
+	<!-- 경력 사항 등록
+	public int insertCrerQlfc(List<CrerQlfcVO> crerQlfcVO) -->
+	<insert id="insertCrerQlfc" parameterType="crerQlfcVO">
+		INSERT INTO CRER_QLFC(ENT_RELOR_NO, SEQ, CRER_ST_DT, CRER_ED_DT, CRER_CONT, CRER)
+		VALUES(#{entRelorNo},#{seq},#{crerStDt},#{crerEdDt},#{crerCont},#{crer})
+	</insert>
+	
+	<!-- 보유자격 등록
+	public int insertCotnQua(CotnQuaVO cotnQuaVO)-->
+	<insert id="insertCotnQua" parameterType="cotnQuaVO">
+		INSERT INTO COTN_QUA(ENT_RELOR_NO, SEQ, COTN_LIC)
+		VALUES(#{entRelorNo},#{seq},#{cotnLic})
+	</insert>
+	
+	<!-- 강사 상세 페이지(강사정보)-->
+	<select id="detail" parameterType="String" resultMap="entRelorStandMap">
+		SELECT  ERS.ENT_RELOR_NO, ERS.KORN_FLNM, ERS.ENT_RELOR_DIV, ERS.MBR_NO
+		         ,   E.EMP_NO, E.CUR_JOB_DIV, E.CUR_WORK_CTR_NO
+		         ,   I.MEMS_DIV
+		         ,   AFD.ATCH_FILE_ID, AFD.FILE_SN, AFD.FILE_STRE_COURS, AFD.STRE_FILE_NM
+		         ,   AFD.ORIGNL_FILE_NM, AFD.FILE_EXTSN, AFD.FILE_CN, AFD.FILE_SIZE
+		FROM    ENT_RELOR_STAND ERS, EMP E, INSTRS I, ATCH_FILE_DETAIL AFD
+		WHERE   ERS.ENT_RELOR_NO = E.ENT_RELOR_NO
+		AND      E.ENT_RELOR_NO = I.ENT_RELOR_NO
+		AND      ERS.ENT_RELOR_NO = AFD.ATCH_FILE_ID(+)
+		AND      ERS.ENT_RELOR_NO = #{entRelorNo}
+	</select>
+	<!-- 강사프로필 1 -->
+	<resultMap type="instrsWorkPflVO" id="instrsWorkPflMap">
+		<result property="entRelorNo" column="ENT_RELOR_NO"/>
+		<result property="seq" column="SEQ"/>
+		<result property="pfl" column="PFL"/>
+		<result property="pflNm" column="PFL_NM"/>
+		<collection property="crerQlfcVOList" resultMap="crerQlfcMap"></collection>
+		<collection property="cotnQuaVOList" resultMap="cotnQuaMap"></collection>
+	</resultMap>
+	
+	<!-- 보유자격 -->
+	<resultMap type="cotnQuaVO" id="cotnQuaMap">
+		<result property="entRelorNo" column="ENT_RELOR_NO"/>
+		<result property="seq" column="SEQ"/>
+		<result property="cotnLic" column="COTN_LIC"/>
+	</resultMap>
+	
+	<!-- 경력사항 N -->
+	<resultMap type="crerQlfcVO" id="crerQlfcMap">
+		<result property="entRelorNo" column="ENT_RELOR_NO"/>
+		<result property="seq" column="SEQ"/>
+		<result property="crerStDt" column="CRER_ST_DT"/>
+		<result property="crerEdDt" column="CRER_ED_DT"/>
+		<result property="crerCont" column="CRER_CONT"/>
+		<result property="crer" column="CRER"/>
+		<result property="crerNm" column="CRER_NM"/>
+	</resultMap>
+	
+	<!-- 강사프로필 + 경력사항 -->	
+	<select id="getCrerQlfc" parameterType="String" resultMap="instrsWorkPflMap">
+		SELECT  IWP.ENT_RELOR_NO, IWP.SEQ, IWP.PFL
+		         ,  FN_GET_COM_NM(IWP.PFL) PFL_NM
+		         ,  CQ.CRER_ST_DT, CQ.CRER_ED_DT
+		         ,  CQ.CRER_CONT, CQ.CRER
+		         ,  FN_GET_COM_NM(CQ.CRER) CRER_NM
+		FROM   INSTRS_WORK_PFL IWP, CRER_QLFC CQ
+		WHERE  IWP.ENT_RELOR_NO = CQ.ENT_RELOR_NO
+		AND      IWP.SEQ = CQ.SEQ 
+		AND      IWP.PFL = 'PFL01001'
+		AND      IWP.ENT_RELOR_NO = #{entRelorNo}
+	</select>
+	
+	<!--강사프로필 + 보유자격 
+	public List<InstrsWorkPflVO> getCotnQua(String entRelorNo)
+	 -->
+	<select id="getCotnQua" parameterType="String" resultMap="instrsWorkPflMap">
+		SELECT  IWP.ENT_RELOR_NO, IWP.SEQ, IWP.PFL
+		     ,  CQU.COTN_LIC
+		FROM   INSTRS_WORK_PFL IWP, COTN_QUA CQU
+		WHERE  IWP.ENT_RELOR_NO = CQU.ENT_RELOR_NO
+		AND     IWP.SEQ = CQU.SEQ
+		AND      IWP.PFL = 'PFL01002'
+		AND      IWP.ENT_RELOR_NO = '202311016' 
+	</select>
+	
+	<!-- 전사관계자기본 수정
+	entRelorNo=202311016, kornFlnm=장원영5, entRelorDiv=ENT01002, mbrNo=11177
+	 -->
+	<update id="updatePost" parameterType="entRelorStandVO">
+		UPDATE ENT_RELOR_STAND
+		SET    KORN_FLNM=#{kornFlnm}, ENT_RELOR_DIV=#{entRelorDiv}, MBR_NO=#{mbrNo}
+		WHERE  ENT_RELOR_NO = #{entRelorNo}
+	</update>
+	
+	<!-- 직원 수정
+	empVO=EmpVO(entRelorNo=202311016, empNo=0, curJobDiv=CUR01001, curWorkCtrNo=11, 
+	 -->
+	<update id="updateEmpPost" parameterType="entRelorStandVO">
+		UPDATE EMP
+		SET    EMP_NO=#{empVO.empNo}, CUR_JOB_DIV=#{empVO.curJobDiv}
+			 , CUR_WORK_CTR_NO=#{empVO.curWorkCtrNo}
+		WHERE  ENT_RELOR_NO = #{empVO.entRelorNo}
+	</update>
+	
+	<!-- 강사 수정
+	public int updateInstrsPost(InstrsVO instrsVO)
+	
+	InstrsVO(entRelorNo=202311011, memsDiv=사원)
+	 -->
+	<update id="updateInstrsPost" parameterType="instrsVO">
+		UPDATE INSTRS
+		SET    MEMS_DIV = #{memsDiv}
+		WHERE  ENT_RELOR_NO = #{entRelorNo}
+	</update>
+	
+	<!-- 
+	강사프로필 데이터를 삭제 -> 외래키를 보유한 경력사항 및 보유자격 행(row)도 함께 삭제(cascade)
+	public int deleteInstrsWorkPfl(String entRelorNo)
+	 -->
+	<delete id="deleteInstrsWorkPfl" parameterType="String">
+		DELETE FROM INSTRS_WORK_PFL
+		WHERE  ENT_RELOR_NO = #{entRelorNo}
+	</delete>
+	
+	<!-- 
+	파일 삭제
+	public int deleteAtchFileDetail(String entRelorNo)
+	 -->
+	<delete id="deleteAtchFileDetail" parameterType="String">
+		DELETE FROM ATCH_FILE_DETAIL
+		WHERE  ENT_RELOR_NO = #{entRelorNo}  
+	</delete>
+</mapper>
+
+
+
+
+
